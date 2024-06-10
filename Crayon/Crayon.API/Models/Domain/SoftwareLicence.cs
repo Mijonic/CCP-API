@@ -10,9 +10,8 @@ namespace Crayon.API.Models.Domain
         public DateTimeOffset SubscriptionEndDate { get; set; }
         public SoftwareLicenceState State { get; set; }
         public Guid AccountId { get; set; }
+        public Account Account { get; set; }
 
         public bool IsValid => State == SoftwareLicenceState.Active;
-
-
     }
 }
