@@ -1,4 +1,4 @@
-﻿namespace Crayon.API.Models.Dto
+﻿namespace Crayon.API.Models.Dto.Input
 {
     public class OrderSoftwareInputDto
     {

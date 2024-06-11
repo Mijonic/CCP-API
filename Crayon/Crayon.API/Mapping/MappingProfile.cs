@@ -12,6 +12,7 @@ namespace Crayon.API.Mapping
             CreateMap<ServiceCCPModel, AvailableSoftwareLicenceDto>();
             CreateMap<OrderSoftwareCCPModel, SoftwareLicence>();
             CreateMap<SoftwareLicence, OrderSotwareDto>();
+            CreateMap<SoftwareLicence, SoftwareLicenceDto>();
         }
     }
 }

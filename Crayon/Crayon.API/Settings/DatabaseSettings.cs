@@ -14,6 +14,7 @@
     {
         public int CustomerAccounts { get; set; }
         public int AvailableServices { get; set; }
+        public int AccountLicences { get; set; }    
     }
 }
 

@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
 using Crayon.API.Contracts;
+using Crayon.API.Exceptions;
 using Crayon.API.Models.Database;
 using Crayon.API.Models.Domain;
 using Crayon.API.Models.Dto;
+using Crayon.API.Models.Dto.Input;
 using Crayon.API.Settings;
 using Crayon.API.Util;
 using Microsoft.EntityFrameworkCore;
@@ -31,6 +33,8 @@ namespace Crayon.API.Services
             this.ccpRepository = Guard.AgainstNull(ccpRepository, nameof(ccpRepository));
             this.ccpSettings = Guard.AgainstNull(ccpSettings.Value, nameof(ccpSettings));
         }
+
+
 
         public async Task<AccountsPage> GetAccounts(Guid userId, int pageNumber)
         {
@@ -69,6 +73,39 @@ namespace Crayon.API.Services
             return mapper.Map<List<AvailableSoftwareLicenceDto>>(availableService);
         }
 
+        public async Task<IEnumerable<SoftwareLicenceDto>> GetLicencesForAccount(Guid accountId, int pageNumber)
+        {
+
+            var pagedData = dbContext.SoftwareLicences.Where(x => x.AccountId == accountId).Include(x => x.Account);
+
+            var results = await pagedData.Skip(pageNumber * databaseSettings.PageSizes.AccountLicences)
+                                 .Take(databaseSettings.PageSizes.CustomerAccounts)
+                                 .ToListAsync();
+
+            return mapper.Map<List<SoftwareLicenceDto>>(results);
+
+        }
+
+        public async Task<SoftwareLicenceDto> ModifyQuantity(UpdateQuantityInputDto updateQuantityInput)
+        {
+            updateQuantityInput.Validate();
+
+            var licence = await dbContext.SoftwareLicences.Include(x => x.Account).FirstOrDefaultAsync(x => x.Id == updateQuantityInput.LicenceId);
+
+            if (licence == null)
+            {
+                throw new EntityNotFoundException($"Could not find licence with {updateQuantityInput.LicenceId}");
+            }
+
+            licence.Quantity = updateQuantityInput.Quantity;
+
+            dbContext.SoftwareLicences.Update(licence);
+            await dbContext.SaveChangesAsync();
+
+            return mapper.Map<SoftwareLicenceDto>(licence);
+
+        }
+
         public async Task<OrderSotwareDto> OrderSoftware(OrderSoftwareInputDto orderSoftwareInput)
         {
             var ccpResponse = await ccpRepository.OrderSoftware(orderSoftwareInput.SoftwareId, orderSoftwareInput.AccountId);
@@ -83,7 +120,45 @@ namespace Crayon.API.Services
 
         }
 
+        public async Task<SoftwareLicenceDto> CancelLicence(Guid id)
+        {
+            var licence = await dbContext.SoftwareLicences.Include(x => x.Account).FirstOrDefaultAsync(x => x.Id == id);
+
+            if (licence == null)
+            {
+                throw new EntityNotFoundException($"Could not find licence with {id}");
+            }
+
+            licence.State = Models.Enums.SoftwareLicenceState.Canceled;
+
+            dbContext.SoftwareLicences.Update(licence);
+            await dbContext.SaveChangesAsync();
+
+            return mapper.Map<SoftwareLicenceDto>(licence);
+        }
+
         private string GetUserAccountsCacheKey(Guid userId, int pageNumber) => $"UserAccounts:{userId}-{pageNumber}";
-        
+
+        public async Task<SoftwareLicenceDto> ExtendLicence(Guid id, DateTimeOffset extendedDate)
+        {
+            var licence = await dbContext.SoftwareLicences.Include(x => x.Account).FirstOrDefaultAsync(x => x.Id == id);
+
+            if (licence == null)
+            {
+                throw new EntityNotFoundException($"Could not find licence with {id}");
+            }
+
+            if(extendedDate <= licence.SubscriptionEndDate)
+            {
+                throw new InvalidDateTimeException("Cannot reduce the licence expiration date.");
+            }
+
+            licence.SubscriptionEndDate = extendedDate;
+
+            dbContext.SoftwareLicences.Update(licence);
+            await dbContext.SaveChangesAsync();
+
+            return mapper.Map<SoftwareLicenceDto>(licence);
+        }
     }
 }
