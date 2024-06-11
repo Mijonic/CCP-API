@@ -1,18 +1,37 @@
+using AutoMapper;
+using Crayon.API.Contracts;
+using Crayon.API.Mapping;
 using Crayon.API.Models.Database;
+using Crayon.API.Repositories;
+using Crayon.API.Services;
 using Crayon.API.Settings;
 using Microsoft.EntityFrameworkCore;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+
+builder.Services.AddScoped<IRedisRepository, RedisRepository>();
+builder.Services.AddScoped<ICrayonService, CrayonService>();
+
+var databaseSettings = builder.Configuration.GetSection(DatabaseSettings.DatabaseSettingsSettingsName).Get<DatabaseSettings>();
+builder.Services.AddDbContext<CrayonDbContext>(options => options.UseSqlServer(databaseSettings.ConnectionString), ServiceLifetime.Transient);
+
+
+var redisSettings = builder.Configuration.GetSection(RedisSettings.RedisSettingsName).Get<RedisSettings>();
+builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Connect(redisSettings.ConnectionString));
+
+builder.Services.Configure<RedisSettings>(builder.Configuration.GetSection(RedisSettings.RedisSettingsName));
+builder.Services.Configure<DatabaseSettings>(builder.Configuration.GetSection(DatabaseSettings.DatabaseSettingsSettingsName));
+
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var databaseSettings = builder.Configuration.GetSection(DatabaseSettings.DatabaseSettingsSettingsName).Get<DatabaseSettings>();
-builder.Services.AddDbContext<CrayonDbContext>(options => options.UseSqlServer(databaseSettings.ConnectionString));
 
 var app = builder.Build();
 
