@@ -12,6 +12,13 @@ namespace Crayon.API.Models.Domain
         public Guid AccountId { get; set; }
         public Account Account { get; set; }
 
-        public bool IsValid => State == SoftwareLicenceState.Active;
+        public void UpdateOrderedSoftwareLicence(int quantity, Guid accountId)
+        {
+            Quantity = quantity;
+            AccountId = accountId;
+            State = SoftwareLicenceState.Active;
+            SubscriptionEndDate = DateTimeOffset.UtcNow.AddMonths(1);
+        }
+
     }
 }

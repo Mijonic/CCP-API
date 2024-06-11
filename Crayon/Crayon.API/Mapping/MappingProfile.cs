@@ -8,7 +8,10 @@ namespace Crayon.API.Mapping
     {
         public MappingProfile()
         {
-            CreateMap<Account, AccountDto>();       
+            CreateMap<Account, AccountDto>();
+            CreateMap<ServiceCCPModel, AvailableSoftwareLicenceDto>();
+            CreateMap<OrderSoftwareCCPModel, SoftwareLicence>();
+            CreateMap<SoftwareLicence, OrderSotwareDto>();
         }
     }
 }

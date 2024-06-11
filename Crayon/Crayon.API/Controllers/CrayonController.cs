@@ -6,7 +6,7 @@ using System;
 
 namespace Crayon.API.Controllers
 {
-    [Route("api/crayon")]
+    [Route("api/crayon/v1")]
     [ApiController]
     public class CrayonController : ControllerBase
     {
@@ -25,14 +25,29 @@ namespace Crayon.API.Controllers
             {
                 var accounts = await service.GetAccounts(userId, pageNumber);
                 return Ok(accounts);
-               
+
             }
-            catch(Exception ex) 
+            catch (Exception ex)
             {
                 return BadRequest(ex.Message);
             }
 
-         
+        }
+
+        [HttpGet("available-services/page/{pageNumber}")]
+        [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<AvailableSoftwareLicenceDto>))]
+        public async Task<IActionResult> GetAvailableServices(int pageNumber)
+        {
+            var accounts = await service.GetAvailableServices(pageNumber);
+            return Ok(accounts);
+        }
+
+        [HttpPost]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        public async Task<IActionResult> OrderSoftware([FromBody]OrderSoftwareInputDto orderSoftwareInput)
+        {
+            var res = await service.OrderSoftware(orderSoftwareInput);
+            return Ok(res);
         }
     }
 }

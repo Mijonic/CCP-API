@@ -1,6 +1,4 @@
-using AutoMapper;
 using Crayon.API.Contracts;
-using Crayon.API.Mapping;
 using Crayon.API.Models.Database;
 using Crayon.API.Repositories;
 using Crayon.API.Services;
@@ -12,8 +10,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
+builder.Services.AddScoped<ICCPRepository, CCPRepository>();
 builder.Services.AddScoped<IRedisRepository, RedisRepository>();
 builder.Services.AddScoped<ICrayonService, CrayonService>();
+
 
 var databaseSettings = builder.Configuration.GetSection(DatabaseSettings.DatabaseSettingsSettingsName).Get<DatabaseSettings>();
 builder.Services.AddDbContext<CrayonDbContext>(options => options.UseSqlServer(databaseSettings.ConnectionString), ServiceLifetime.Transient);
@@ -24,6 +24,7 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(ConnectionMultiplexer.Conn
 
 builder.Services.Configure<RedisSettings>(builder.Configuration.GetSection(RedisSettings.RedisSettingsName));
 builder.Services.Configure<DatabaseSettings>(builder.Configuration.GetSection(DatabaseSettings.DatabaseSettingsSettingsName));
+builder.Services.Configure<CCPSettings>(builder.Configuration.GetSection(CCPSettings.CCPSettingsName));
 
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
