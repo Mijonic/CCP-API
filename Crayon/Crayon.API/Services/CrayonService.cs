@@ -1,5 +1,6 @@
 ﻿using AutoMapper;
 using Crayon.API.Contracts;
+using Crayon.API.Controllers;
 using Crayon.API.Exceptions;
 using Crayon.API.Models.Database;
 using Crayon.API.Models.Domain;
@@ -9,6 +10,7 @@ using Crayon.API.Settings;
 using Crayon.API.Util;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using System.Text.Json;
 
 namespace Crayon.API.Services
 {
@@ -21,9 +23,10 @@ namespace Crayon.API.Services
         private readonly RedisSettings redisSettings;
         private readonly DatabaseSettings databaseSettings;
         private readonly CCPSettings ccpSettings;
+        private readonly ILogger<CrayonService> logger;
 
-        public CrayonService(CrayonDbContext dbContext, IMapper mapper, IOptions<DatabaseSettings> databaseSettings, IRedisRepository redisRepository, 
-            IOptions<RedisSettings> redisSettings, ICCPRepository ccpRepository, IOptions<CCPSettings> ccpSettings)
+        public CrayonService(CrayonDbContext dbContext, IMapper mapper, IOptions<DatabaseSettings> databaseSettings, IRedisRepository redisRepository,
+            IOptions<RedisSettings> redisSettings, ICCPRepository ccpRepository, IOptions<CCPSettings> ccpSettings, ILogger<CrayonService> logger)
         {
             this.dbContext = Guard.AgainstNull(dbContext, nameof(dbContext));
             this.mapper = Guard.AgainstNull(mapper, nameof(mapper));
@@ -32,6 +35,7 @@ namespace Crayon.API.Services
             this.redisSettings = Guard.AgainstNull(redisSettings.Value, nameof(redisSettings));
             this.ccpRepository = Guard.AgainstNull(ccpRepository, nameof(ccpRepository));
             this.ccpSettings = Guard.AgainstNull(ccpSettings.Value, nameof(ccpSettings));
+            this.logger = Guard.AgainstNull(logger, nameof(logger));
         }
 
 
@@ -39,14 +43,19 @@ namespace Crayon.API.Services
         public async Task<AccountsPage> GetAccounts(Guid userId, int pageNumber)
         {
 
+            logger.LogInformation($"[{nameof(CrayonService)}::{nameof(GetAccounts)}] Getting customer accounts.");
+
             var cacheKey = GetUserAccountsCacheKey(userId, pageNumber);
             var foundInCache = await redisRepository.GetFromCache<AccountsPage>(cacheKey);
 
             if(foundInCache != null)
             {
+                logger.LogInformation($"[{nameof(CrayonService)}::{nameof(GetAccounts)}] Accounts page found in cache {JsonSerializer.Serialize(foundInCache)}");
                 return foundInCache;
             }
 
+
+            logger.LogInformation($"[{nameof(CrayonService)}::{nameof(GetAccounts)}] Getting accounts page from database.");
 
             var pagedData = dbContext.Accounts.Where(x => x.CustomerId == userId);
             var resourceCount = await pagedData.CountAsync();
@@ -54,6 +63,9 @@ namespace Crayon.API.Services
             var results = await pagedData.Skip(pageNumber * databaseSettings.PageSizes.CustomerAccounts)
                                  .Take(databaseSettings.PageSizes.CustomerAccounts)
                                  .ToListAsync();
+
+
+            logger.LogInformation($"[{nameof(CrayonService)}::{nameof(GetAccounts)}] Completed getting data from database - {JsonSerializer.Serialize(results)}");
 
             var result =  new AccountsPage()
             {
