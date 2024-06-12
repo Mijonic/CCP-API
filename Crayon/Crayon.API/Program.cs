@@ -1,4 +1,5 @@
 using Crayon.API.Contracts;
+using Crayon.API.Middleware;
 using Crayon.API.Models.Database;
 using Crayon.API.Repositories;
 using Crayon.API.Services;
@@ -54,6 +55,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseHttpsRedirection();
 
